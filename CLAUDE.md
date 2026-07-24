@@ -24,6 +24,12 @@ python -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
 
+**Docker:**
+```bash
+docker compose up --build    # build + run on http://localhost:8080
+docker compose down          # stop
+```
+
 > **WSL2 note:** The Flask server binds to `0.0.0.0`. To reach it from a Windows browser, set up a port proxy in PowerShell (admin):
 > ```powershell
 > netsh interface portproxy add v4tov4 listenport=8080 listenaddress=127.0.0.1 connectport=8080 connectaddress=<WSL_IP>
@@ -34,7 +40,7 @@ python -m venv .venv
 
 Two-process app with no build step. The frontend uses native ES modules (`type="module"`) and **must be served** — opening `index.html` as `file://` won't work.
 
-- **`server.py`** — Flask proxy that forwards requests to `https://api-content.ingresso.com/v0` with `partnership=home`. Handles CORS. Three endpoints: `/theaters`, `/theaters/city/<id>`, `/sessions/city/<city_id>/theater/<theater_id>`.
+- **`server.py`** — Flask proxy that forwards requests to `https://api-content.ingresso.com/v0` with `partnership=home`. Handles CORS. Serves static files (index.html, src/, styles/) via catch-all route. Three API endpoints: `/theaters`, `/theaters/city/<id>`, `/sessions/city/<city_id>/theater/<theater_id>`.
 
 - **`src/api.js`** — Thin fetch wrapper with in-memory `Map` cache. Hardcoded to `http://localhost:8080`.
 
