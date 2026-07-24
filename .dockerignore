@@ -1,6 +1,6 @@
 .venv/
 .git/
 .claude/
-docs/
+docs/**
 __pycache__/
 *.pyc
