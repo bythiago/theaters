@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cinema Marathon Planner</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <span class="app-header__icon">🎬</span>
+    <div>
+      <div class="app-header__title">Cinema Marathon Planner</div>
+      <div class="app-header__subtitle">Planeje sua sessão dupla (ou tripla) no cinema</div>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- ── Sidebar: selectors + session list ── -->
+    <aside class="sidebar">
+
+      <!-- Step 1: Choose city & theater -->
+      <div class="step step--active" id="step-selectors">
+        <div class="step__header">
+          <div class="step__num">1</div>
+          <div class="step__title">Escolha o cinema</div>
+        </div>
+        <div class="step__body">
+          <select id="city-select" disabled>
+            <option value="">Carregando cidades…</option>
+          </select>
+          <div style="height:.6rem"></div>
+          <select id="theater-select" disabled>
+            <option value="">Selecione o cinema</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Step 2: Choose date -->
+      <div class="step" id="step-date">
+        <div class="step__header">
+          <div class="step__num">2</div>
+          <div class="step__title">Escolha a data</div>
+        </div>
+        <div class="step__body">
+          <select id="date-select" disabled>
+            <option value="">Selecione a data</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Step 3: Session list -->
+      <div class="step" id="step-sessions">
+        <div class="step__header">
+          <div class="step__num">3</div>
+          <div class="step__title">Escolha a 1ª sessão</div>
+        </div>
+        <div class="step__body">
+          <div id="session-list">
+            <div class="empty-state">Selecione uma cidade para começar.</div>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- ── Content: next sessions + marathon ── -->
+    <div class="content">
+
+      <!-- Step 4: Next session suggestions -->
+      <div class="step" id="step-next">
+        <div class="step__header">
+          <div class="step__num">4</div>
+          <div class="step__title">Adicione mais filmes</div>
+        </div>
+        <div class="step__body">
+          <div id="next-sessions">
+            <div class="empty-state">Selecione a primeira sessão para ver sugestões.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5: Marathon summary -->
+      <div class="step" id="step-marathon">
+        <div class="step__header">
+          <div class="step__num">5</div>
+          <div class="step__title">Sua maratona</div>
+        </div>
+        <div class="step__body">
+          <div id="marathon-panel">
+            <div class="empty-state">A maratona aparece aqui conforme você adiciona filmes.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script type="module">
+    import { init } from './src/app.js';
+    init();
+  </script>
+
+</body>
+</html>
