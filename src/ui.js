@@ -19,38 +19,61 @@ export function populateSelect(select, items, placeholder) {
  * Show a loading spinner inside a container.
  */
 export function showLoading(container) {
-  container.innerHTML = '<div class="loading"><span class="spinner"></span> Carregando...</div>';
+  container.innerHTML = '<div class="loading" role="status"><span class="spinner" aria-hidden="true"></span> Carregando...</div>';
 }
 
 /**
  * Show an error message inside a container.
  */
 export function showError(container, message) {
-  container.innerHTML = `<div class="error-msg">${message}</div>`;
+  container.innerHTML = `<div class="error-msg" role="alert">${message}</div>`;
 }
 
 /**
- * Show an info/empty state message.
+ * Show an info/empty state message with optional icon.
  */
-export function showEmpty(container, message) {
-  container.innerHTML = `<div class="empty-state">${message}</div>`;
+export function showEmpty(container, message, icon) {
+  const iconHTML = icon
+    ? `<span class="empty-state__icon" aria-hidden="true">${icon}</span>`
+    : '';
+  container.innerHTML = `
+    <div class="empty-state">
+      ${iconHTML}
+      <span class="empty-state__text">${message}</span>
+    </div>`;
+}
+
+/**
+ * Show a toast notification.
+ */
+export function showToast(message, type = 'error') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const icons = { error: '⚠️', info: 'ℹ️', success: '✅' };
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${type}`;
+  toast.innerHTML = `
+    <span class="toast__icon" aria-hidden="true">${icons[type] || icons.error}</span>
+    <span class="toast__text">${message}</span>
+  `;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.remove();
+  }, 5200);
 }
 
 /**
  * Render the list of all sessions for the selected day.
  * Groups by movie.
- *
- * @param {HTMLElement} container
- * @param {Array} sessions - Flat session list
- * @param {Function} onSelect - Called with (session) when user clicks
  */
 export function renderSessionList(container, sessions, onSelect) {
   if (!sessions.length) {
-    showEmpty(container, 'Nenhuma sessão encontrada para esta data.');
+    showEmpty(container, 'Nenhuma sessão encontrada para esta data.', '🎞️');
     return;
   }
 
-  // Group by movieId
   const movies = new Map();
   for (const s of sessions) {
     if (!movies.has(s.movieId)) {
@@ -67,12 +90,12 @@ export function renderSessionList(container, sessions, onSelect) {
 
     const posterHTML = movie.poster
       ? `<img class="movie-poster" src="${movie.poster}" alt="${escapeHtml(movie.title)}" loading="lazy">`
-      : `<div class="movie-poster movie-poster--placeholder">${getInitials(movie.title)}</div>`;
+      : `<div class="movie-poster movie-poster--placeholder" aria-hidden="true">${getInitials(movie.title)}</div>`;
 
     const sessionsHTML = movie.sessions
       .map(s => {
         const types = s.type.length ? s.type.join(', ') : 'N/D';
-        return `<button class="session-btn" data-session-id="${s.sessionId}" data-movie-id="${s.movieId}">
+        return `<button class="session-btn" data-session-id="${s.sessionId}" data-movie-id="${s.movieId}" aria-label="Sessão ${s.time}, ${escapeHtml(types)}, ${escapeHtml(movie.title)}">
           <span class="session-time">${s.time}</span>
           <span class="session-meta">${escapeHtml(types)}</span>
         </button>`;
@@ -94,13 +117,11 @@ export function renderSessionList(container, sessions, onSelect) {
       </div>
     `;
 
-    // Attach click events
     for (const btn of card.querySelectorAll('.session-btn')) {
       btn.addEventListener('click', () => {
         const sid = btn.dataset.sessionId;
         const session = sessions.find(s => s.sessionId === sid);
         if (session) {
-          // Highlight selected
           container.querySelectorAll('.session-btn').forEach(b => b.classList.remove('session-btn--active'));
           btn.classList.add('session-btn--active');
           onSelect(session);
@@ -114,15 +135,10 @@ export function renderSessionList(container, sessions, onSelect) {
 
 /**
  * Render the list of compatible next sessions (suggestions).
- *
- * @param {HTMLElement} container
- * @param {Array} nextSessions - Output of findNextSessions()
- * @param {number} step - Current step number (1 = picking 2nd film, etc.)
- * @param {Function} onSelect - Called with (session) when user picks
  */
 export function renderNextSessions(container, nextSessions, step, onSelect) {
   if (!nextSessions.length) {
-    showEmpty(container, 'Nenhuma sessão compatível encontrada após este filme.');
+    showEmpty(container, 'Nenhuma sessão compatível encontrada após este filme.', '🚫');
     return;
   }
 
@@ -136,7 +152,10 @@ export function renderNextSessions(container, nextSessions, step, onSelect) {
 
     card.innerHTML = `
       <div class="next-session__wait">
-        <span class="wait-badge wait-badge--${s.feasibility}">${s.waitFormatted} de espera</span>
+        <span class="wait-badge wait-badge--${s.feasibility}">
+          <span class="wait-badge__icon" aria-hidden="true">${waitIcon(s.feasibility)}</span>
+          ${s.waitFormatted} de espera
+        </span>
       </div>
       <div class="next-session__info">
         <div class="next-session__title">${escapeHtml(s.movieTitle)}</div>
@@ -146,7 +165,7 @@ export function renderNextSessions(container, nextSessions, step, onSelect) {
           ${s.room ? `<span class="session-meta">Sala ${escapeHtml(s.room)}</span>` : ''}
         </div>
       </div>
-      <button class="add-btn">Adicionar</button>
+      <button class="add-btn" aria-label="Adicionar ${escapeHtml(s.movieTitle)} às ${s.time}">Adicionar</button>
     `;
 
     card.querySelector('.add-btn').addEventListener('click', () => onSelect(s));
@@ -156,14 +175,10 @@ export function renderNextSessions(container, nextSessions, step, onSelect) {
 
 /**
  * Render the marathon timeline and summary.
- *
- * @param {HTMLElement} container
- * @param {Object} marathon - Output of buildMarathon()
- * @param {Function} onRemove - Called with (index) when user removes a step
  */
 export function renderMarathon(container, marathon, onRemove) {
   if (!marathon || !marathon.items.length) {
-    container.innerHTML = '';
+    showEmpty(container, 'A maratona aparece aqui conforme você adiciona filmes.', '🍿');
     return;
   }
 
@@ -175,7 +190,10 @@ export function renderMarathon(container, marathon, onRemove) {
       const waitBlock = item.waitMinutes > 0
         ? `<div class="timeline-wait">
             <div class="timeline-wait__line"></div>
-            <span class="wait-badge wait-badge--${item.feasibility}">${item.waitFormatted} de espera</span>
+            <span class="wait-badge wait-badge--${item.feasibility}">
+              <span class="wait-badge__icon" aria-hidden="true">${waitIcon(item.feasibility)}</span>
+              ${item.waitFormatted} de espera
+            </span>
             <div class="timeline-wait__line"></div>
            </div>`
         : '';
@@ -192,7 +210,7 @@ export function renderMarathon(container, marathon, onRemove) {
               ${s.type.length ? `· ${escapeHtml(s.type.join(', '))}` : ''}
             </div>
           </div>
-          ${i > 0 ? `<button class="remove-btn" data-index="${i}" title="Remover">✕</button>` : ''}
+          ${i > 0 ? `<button class="remove-btn" data-index="${i}" title="Remover ${escapeHtml(s.movieTitle)}" aria-label="Remover ${escapeHtml(s.movieTitle)} da maratona">✕</button>` : ''}
         </div>
       `;
     })
@@ -222,6 +240,7 @@ export function renderMarathon(container, marathon, onRemove) {
           <span>Duração total</span><strong>${marathon.totalElapsedFormatted}</strong>
         </div>
       </div>
+      <button class="clear-marathon-btn" data-action="clear">🗑️ Limpar maratona</button>
     </div>
   `;
 
@@ -231,6 +250,11 @@ export function renderMarathon(container, marathon, onRemove) {
       onRemove(index);
     });
   });
+
+  const clearBtn = container.querySelector('.clear-marathon-btn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => onRemove(0));
+  }
 }
 
 // --- Helpers ---
@@ -254,7 +278,8 @@ function getInitials(title) {
 }
 
 function ordinal(n) {
-  return n;
+  const suffixes = ['', 'º', 'º', 'º', 'º', 'º', 'º', 'º', 'º', 'º'];
+  return `${n}${suffixes[n] || 'º'}`;
 }
 
 function formatDuration(min) {
@@ -270,4 +295,9 @@ function addMinutesDisplay(time, minutes) {
   const hh = Math.floor(total / 60) % 24;
   const mm = total % 60;
   return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+}
+
+function waitIcon(feasibility) {
+  const icons = { ideal: '⚡', ok: '⏰', long_wait: '⏳' };
+  return icons[feasibility] || '⏱️';
 }

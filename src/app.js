@@ -5,6 +5,7 @@ import {
   showLoading,
   showError,
   showEmpty,
+  showToast,
   renderSessionList,
   renderNextSessions,
   renderMarathon,
@@ -12,11 +13,11 @@ import {
 
 // --- State ---
 const state = {
-  theaters: [],        // all theaters from API
-  cities: [],          // unique cities
-  sessions: [],        // flat sessions for selected theater+date
+  theaters: [],
+  cities: [],
+  sessions: [],
   selectedDate: null,
-  marathon: [],        // ordered list of selected session objects
+  marathon: [],
 };
 
 // --- DOM refs ---
@@ -31,17 +32,40 @@ const els = {
   stepSessions: document.getElementById('step-sessions'),
   stepNext: document.getElementById('step-next'),
   stepMarathon: document.getElementById('step-marathon'),
+  progressFill: document.getElementById('progress-fill'),
 };
+
+const progressSteps = document.querySelectorAll('.progress-step');
+
+// --- Progress bar ---
+function updateProgress(activeStep) {
+  const total = 5;
+  const pct = ((activeStep - 1) / (total - 1)) * 100;
+  els.progressFill.style.width = `${pct}%`;
+
+  progressSteps.forEach(step => {
+    const n = parseInt(step.dataset.step, 10);
+    step.classList.remove('progress-step--active', 'progress-step--done');
+    if (n < activeStep) step.classList.add('progress-step--done');
+    else if (n === activeStep) step.classList.add('progress-step--active');
+  });
+}
+
+function scrollToActiveStep(el) {
+  if (el) {
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+  }
+}
 
 // --- Init ---
 export async function init() {
   showLoading(els.sessionList);
+  updateProgress(1);
 
   try {
     const theaters = await getTheaters();
     state.theaters = theaters;
 
-    // Extract unique cities sorted by name
     const cityMap = new Map();
     for (const t of theaters) {
       if (t.cityId && t.cityName && !cityMap.has(t.cityId)) {
@@ -56,9 +80,10 @@ export async function init() {
     populateSelect(els.citySelect, state.cities, 'Selecione a cidade');
     els.citySelect.disabled = false;
 
-    showEmpty(els.sessionList, 'Selecione uma cidade para começar.');
+    showEmpty(els.sessionList, 'Selecione uma cidade para começar.', '🏙️');
   } catch (err) {
-    showError(els.sessionList, `Erro ao carregar cinemas: ${err.message}`);
+    showToast(`Erro ao carregar cinemas: ${err.message}`, 'error');
+    showEmpty(els.sessionList, 'Erro ao carregar cinemas. Tente novamente.', '⚠️');
   }
 }
 
@@ -67,6 +92,7 @@ els.citySelect.addEventListener('change', () => {
   const cityId = els.citySelect.value;
   state.marathon = [];
   resetStep('theater');
+  updateProgress(1);
 
   if (!cityId) {
     populateSelect(els.theaterSelect, [], 'Selecione o cinema');
@@ -79,6 +105,8 @@ els.citySelect.addEventListener('change', () => {
     .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
 
   populateSelect(els.theaterSelect, options, 'Selecione o cinema');
+  updateProgress(2);
+  scrollToActiveStep(els.stepDate);
 });
 
 // --- Event: theater selected ---
@@ -86,6 +114,7 @@ els.theaterSelect.addEventListener('change', async () => {
   const raw = els.theaterSelect.value;
   state.marathon = [];
   resetStep('date');
+  updateProgress(2);
 
   if (!raw) {
     populateSelect(els.dateSelect, [], 'Selecione a data');
@@ -100,10 +129,8 @@ els.theaterSelect.addEventListener('change', async () => {
 
   try {
     const raw = await getSessions(cityId, theaterId);
-    // raw is array of date groups
     const dateGroups = Array.isArray(raw) ? raw : (raw.dates || []);
 
-    // Extract available dates
     const dates = dateGroups
       .map(g => {
         const d = g.date || g.localDate?.substring(0, 10);
@@ -116,13 +143,17 @@ els.theaterSelect.addEventListener('change', async () => {
     populateSelect(els.dateSelect, dates, 'Selecione a data');
     els.stepDate.classList.add('step--active');
 
+    updateProgress(3);
+    scrollToActiveStep(els.stepDate);
+
     if (dates.length > 0) {
-      showEmpty(els.sessionList, 'Selecione uma data para ver as sessões.');
+      showEmpty(els.sessionList, 'Selecione uma data para ver as sessões.', '📅');
     } else {
-      showEmpty(els.sessionList, 'Nenhuma sessão disponível para este cinema.');
+      showEmpty(els.sessionList, 'Nenhuma sessão disponível para este cinema.', '🎞️');
     }
   } catch (err) {
-    showError(els.sessionList, `Erro ao carregar sessões: ${err.message}`);
+    showToast(`Erro ao carregar sessões: ${err.message}`, 'error');
+    showEmpty(els.sessionList, 'Erro ao carregar sessões. Tente novamente.', '⚠️');
     populateSelect(els.dateSelect, [], 'Selecione a data');
   }
 });
@@ -132,9 +163,10 @@ els.dateSelect.addEventListener('change', () => {
   const date = els.dateSelect.value;
   state.marathon = [];
   resetStep('sessions');
+  updateProgress(3);
 
   if (!date) {
-    showEmpty(els.sessionList, 'Selecione uma data.');
+    showEmpty(els.sessionList, 'Selecione uma data.', '📅');
     return;
   }
 
@@ -146,20 +178,13 @@ els.dateSelect.addEventListener('change', () => {
   els.stepSessions.classList.add('step--active');
 
   renderMarathon(els.marathonPanel, null, onRemoveStep);
-  showEmpty(els.nextSessions, 'Selecione a primeira sessão para ver sugestões.');
+  showEmpty(els.nextSessions, 'Selecione a primeira sessão para ver sugestões.', '🎞️');
+  scrollToActiveStep(els.stepSessions);
 });
 
 // --- Session selected (any step) ---
 function onSessionSelect(session) {
-  // First selection: start the marathon
-  if (state.marathon.length === 0) {
-    state.marathon = [session];
-  } else {
-    // This is called from the "next sessions" list — handled via onNextSessionSelect
-    // This branch handles re-picking from the full list when marathon is empty
-    state.marathon = [session];
-  }
-
+  state.marathon = [session];
   updateNextSessions();
   updateMarathon();
 }
@@ -168,12 +193,10 @@ function onNextSessionSelect(session) {
   state.marathon.push(session);
   updateNextSessions();
   updateMarathon();
-  // Scroll to marathon panel
-  els.stepMarathon.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  scrollToActiveStep(els.stepMarathon);
 }
 
 function onRemoveStep(index) {
-  // Remove from index onward (can't remove step 0)
   state.marathon = state.marathon.slice(0, index);
   updateNextSessions();
   updateMarathon();
@@ -181,20 +204,21 @@ function onRemoveStep(index) {
 
 function updateNextSessions() {
   if (state.marathon.length === 0) {
-    showEmpty(els.nextSessions, 'Selecione a primeira sessão para ver sugestões.');
+    showEmpty(els.nextSessions, 'Selecione a primeira sessão para ver sugestões.', '🎞️');
+    updateProgress(3);
     return;
   }
 
   const last = state.marathon[state.marathon.length - 1];
   const suggestions = findNextSessions(last, state.sessions);
 
-  // Filter out already selected sessions
   const selectedIds = new Set(state.marathon.map(s => s.sessionId));
   const filtered = suggestions.filter(s => !selectedIds.has(s.sessionId));
 
   const step = state.marathon.length;
   renderNextSessions(els.nextSessions, filtered, step, onNextSessionSelect);
   els.stepNext.classList.add('step--active');
+  updateProgress(4);
 }
 
 function updateMarathon() {
@@ -202,6 +226,9 @@ function updateMarathon() {
   renderMarathon(els.marathonPanel, marathon, onRemoveStep);
   if (marathon) {
     els.stepMarathon.classList.add('step--active');
+    updateProgress(5);
+  } else {
+    els.stepMarathon.classList.remove('step--active');
   }
 }
 
@@ -219,11 +246,11 @@ function resetStep(from) {
     els.stepDate.classList.remove('step--active');
   }
   if (idx <= 2) {
-    showEmpty(els.sessionList, 'Selecione uma data para ver as sessões.');
+    showEmpty(els.sessionList, 'Selecione uma data para ver as sessões.', '📅');
     els.stepSessions.classList.remove('step--active');
   }
   if (idx <= 3) {
-    showEmpty(els.nextSessions, 'Selecione a primeira sessão para ver sugestões.');
+    showEmpty(els.nextSessions, 'Selecione a primeira sessão para ver sugestões.', '🎞️');
     els.stepNext.classList.remove('step--active');
   }
   if (idx <= 4) {

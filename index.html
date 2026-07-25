@@ -3,22 +3,61 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f1117">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Planeje sua maratona de cinema — escolha sessões compatíveis e monte sua marathon perfeita.">
   <title>Cinema Marathon Planner</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎬</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
 
+  <a href="#main-content" class="skip-link">Pular para o conteúdo</a>
+
   <header class="app-header">
-    <span class="app-header__icon">🎬</span>
+    <span class="app-header__icon" aria-hidden="true">🎬</span>
     <div>
       <div class="app-header__title">Cinema Marathon Planner</div>
       <div class="app-header__subtitle">Planeje sua sessão dupla (ou tripla) no cinema</div>
     </div>
   </header>
 
-  <main class="app-main">
+  <!-- Progress stepper -->
+  <nav class="progress-bar" aria-label="Progresso do planejamento">
+    <div class="progress-bar__track">
+      <div class="progress-bar__fill" id="progress-fill"></div>
+    </div>
+    <ol class="progress-steps">
+      <li class="progress-step progress-step--done" data-step="1">
+        <span class="progress-step__dot">1</span>
+        <span class="progress-step__label">Cinema</span>
+      </li>
+      <li class="progress-step" data-step="2">
+        <span class="progress-step__dot">2</span>
+        <span class="progress-step__label">Data</span>
+      </li>
+      <li class="progress-step" data-step="3">
+        <span class="progress-step__dot">3</span>
+        <span class="progress-step__label">Sessão</span>
+      </li>
+      <li class="progress-step" data-step="4">
+        <span class="progress-step__dot">4</span>
+        <span class="progress-step__label">Adicionar</span>
+      </li>
+      <li class="progress-step" data-step="5">
+        <span class="progress-step__dot">5</span>
+        <span class="progress-step__label">Maratona</span>
+      </li>
+    </ol>
+  </nav>
 
-    <!-- ── Sidebar: selectors + session list ── -->
+  <main class="app-main" id="main-content">
+
+    <!-- Sidebar: selectors + session list -->
     <aside class="sidebar">
 
       <!-- Step 1: Choose city & theater -->
@@ -28,10 +67,12 @@
           <div class="step__title">Escolha o cinema</div>
         </div>
         <div class="step__body">
+          <label for="city-select" class="sr-only">Cidade</label>
           <select id="city-select" disabled>
             <option value="">Carregando cidades…</option>
           </select>
           <div style="height:.6rem"></div>
+          <label for="theater-select" class="sr-only">Cinema</label>
           <select id="theater-select" disabled>
             <option value="">Selecione o cinema</option>
           </select>
@@ -45,6 +86,7 @@
           <div class="step__title">Escolha a data</div>
         </div>
         <div class="step__body">
+          <label for="date-select" class="sr-only">Data</label>
           <select id="date-select" disabled>
             <option value="">Selecione a data</option>
           </select>
@@ -58,15 +100,18 @@
           <div class="step__title">Escolha a 1ª sessão</div>
         </div>
         <div class="step__body">
-          <div id="session-list">
-            <div class="empty-state">Selecione uma cidade para começar.</div>
+          <div id="session-list" aria-live="polite">
+            <div class="empty-state">
+              <span class="empty-state__icon" aria-hidden="true">🏙️</span>
+              <span class="empty-state__text">Selecione uma cidade para começar.</span>
+            </div>
           </div>
         </div>
       </div>
 
     </aside>
 
-    <!-- ── Content: next sessions + marathon ── -->
+    <!-- Content: next sessions + marathon -->
     <div class="content">
 
       <!-- Step 4: Next session suggestions -->
@@ -76,8 +121,11 @@
           <div class="step__title">Adicione mais filmes</div>
         </div>
         <div class="step__body">
-          <div id="next-sessions">
-            <div class="empty-state">Selecione a primeira sessão para ver sugestões.</div>
+          <div id="next-sessions" aria-live="polite">
+            <div class="empty-state">
+              <span class="empty-state__icon" aria-hidden="true">🎞️</span>
+              <span class="empty-state__text">Selecione a primeira sessão para ver sugestões.</span>
+            </div>
           </div>
         </div>
       </div>
@@ -89,14 +137,20 @@
           <div class="step__title">Sua maratona</div>
         </div>
         <div class="step__body">
-          <div id="marathon-panel">
-            <div class="empty-state">A maratona aparece aqui conforme você adiciona filmes.</div>
+          <div id="marathon-panel" aria-live="polite">
+            <div class="empty-state">
+              <span class="empty-state__icon" aria-hidden="true">🍿</span>
+              <span class="empty-state__text">A maratona aparece aqui conforme você adiciona filmes.</span>
+            </div>
           </div>
         </div>
       </div>
 
     </div>
   </main>
+
+  <!-- Toast notifications -->
+  <div class="toast-container" id="toast-container" role="status" aria-live="polite"></div>
 
   <script type="module">
     import { init } from './src/app.js';

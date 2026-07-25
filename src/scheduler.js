@@ -51,7 +51,9 @@ export function flattenSessions(dateGroups, selectedDate = null) {
             movieTitle: movie.title,
             duration,
             contentRating: movie.contentRating,
-            poster: movie.posterMedium || movie.poster || null,
+            poster: (movie.images || []).find(i => i.type === 'PosterPortrait')?.url
+                  || (movie.images || []).find(i => i.type === 'PosterHorizontal')?.url
+                  || movie.posterMedium || movie.poster || null,
             time: session.time,
             startMinutes,
             endMinutes: startMinutes + duration,
