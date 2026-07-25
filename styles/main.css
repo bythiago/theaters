@@ -254,6 +254,66 @@ body {
 
 .step__body { padding: 1rem; }
 
+.step--hidden { display: none; }
+
+/* ─── Random Controls ──────────────────────────────────────────── */
+.random-controls {
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+
+.random-controls__label {
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.random-controls__row {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+}
+
+.random-controls__input {
+  width: 70px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: .55rem .75rem;
+  font-size: .9rem;
+  font-family: inherit;
+  text-align: center;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.random-controls__input:focus {
+  border-color: var(--accent2);
+  box-shadow: 0 0 0 3px var(--accent2-glow);
+}
+
+.random-controls__input:disabled { opacity: .45; cursor: not-allowed; }
+
+.random-btn {
+  flex: 1;
+  background: var(--accent2);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  padding: .55rem 1rem;
+  font-size: .85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+}
+
+.random-btn:hover:not(:disabled) { opacity: .85; transform: translateY(-1px); }
+.random-btn:active:not(:disabled) { transform: translateY(0); }
+.random-btn:disabled { opacity: .45; cursor: not-allowed; }
+
 /* ─── Selects ───────────────────────────────────────────────────── */
 select {
   width: 100%;

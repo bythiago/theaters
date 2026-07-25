@@ -109,6 +109,27 @@
         </div>
       </div>
 
+      <!-- Random selection controls -->
+      <div class="step step--hidden" id="step-random">
+        <div class="step__header">
+          <div class="step__num">🎲</div>
+          <div class="step__title">Seleção aleatória</div>
+        </div>
+        <div class="step__body">
+          <div class="random-controls" aria-live="polite">
+            <label for="movie-count" class="random-controls__label">Quantos filmes?</label>
+            <div class="random-controls__row">
+              <input type="number" id="movie-count" min="2" max="10" value="3"
+                     class="random-controls__input" aria-label="Número de filmes">
+              <button id="random-btn" class="random-btn" disabled
+                      aria-label="Gerar maratona aleatória">
+                🎲 Aleatório
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </aside>
 
     <!-- Content: next sessions + marathon -->

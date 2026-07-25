@@ -1,5 +1,5 @@
 import { getTheaters, getSessions } from './api.js';
-import { flattenSessions, findNextSessions, buildMarathon } from './scheduler.js';
+import { flattenSessions, findNextSessions, buildMarathon, pickRandomMarathon, groupByMovieId } from './scheduler.js';
 import {
   populateSelect,
   showLoading,
@@ -32,7 +32,10 @@ const els = {
   stepSessions: document.getElementById('step-sessions'),
   stepNext: document.getElementById('step-next'),
   stepMarathon: document.getElementById('step-marathon'),
+  stepRandom: document.getElementById('step-random'),
   progressFill: document.getElementById('progress-fill'),
+  movieCount: document.getElementById('movie-count'),
+  randomBtn: document.getElementById('random-btn'),
 };
 
 const progressSteps = document.querySelectorAll('.progress-step');
@@ -177,9 +180,17 @@ els.dateSelect.addEventListener('change', () => {
   renderSessionList(els.sessionList, flat, onSessionSelect);
   els.stepSessions.classList.add('step--active');
 
+  const movieMap = groupByMovieId(flat);
+  const uniqueMovies = movieMap.size;
+  els.movieCount.max = Math.min(uniqueMovies, 10);
+  els.movieCount.value = Math.min(parseInt(els.movieCount.value, 10) || 3, uniqueMovies);
+  els.randomBtn.disabled = uniqueMovies < 2;
+  els.stepRandom.classList.remove('step--hidden');
+  els.stepRandom.classList.add('step--active');
+
   renderMarathon(els.marathonPanel, null, onRemoveStep);
   showEmpty(els.nextSessions, 'Selecione a primeira sessão para ver sugestões.', '🎞️');
-  scrollToActiveStep(els.stepSessions);
+  scrollToActiveStep(els.sessionList);
 });
 
 // --- Session selected (any step) ---
@@ -187,6 +198,8 @@ function onSessionSelect(session) {
   state.marathon = [session];
   updateNextSessions();
   updateMarathon();
+  els.stepRandom.classList.add('step--hidden');
+  els.stepRandom.classList.remove('step--active');
 }
 
 function onNextSessionSelect(session) {
@@ -200,6 +213,44 @@ function onRemoveStep(index) {
   state.marathon = state.marathon.slice(0, index);
   updateNextSessions();
   updateMarathon();
+}
+
+// --- Random selection ---
+els.randomBtn.addEventListener('click', onRandomClick);
+
+function onRandomClick() {
+  const count = parseInt(els.movieCount.value, 10) || 3;
+  const sessions = state.sessions;
+
+  if (sessions.length === 0) {
+    showToast('Nenhuma sessão disponível. Selecione uma data primeiro.', 'error');
+    return;
+  }
+
+  const movieMap = groupByMovieId(sessions);
+  const uniqueMovies = movieMap.size;
+
+  if (uniqueMovies < 2) {
+    showToast('É necessário pelo menos 2 filmes diferentes para uma maratona.', 'error');
+    return;
+  }
+
+  const result = pickRandomMarathon(sessions, count);
+
+  if (!result) {
+    showToast('Não foi possível montar uma maratona com tantos filmes. Tente com menos.', 'error');
+    return;
+  }
+
+  if (result.clamped) {
+    showToast(`Apenas ${result.uniqueMovies} filmes disponíveis. Montando maratona com ${result.sessions.length}.`, 'info');
+  }
+
+  state.marathon = result.sessions;
+  updateMarathon();
+  updateNextSessions();
+  updateProgress(5);
+  scrollToActiveStep(els.stepMarathon);
 }
 
 function updateNextSessions() {

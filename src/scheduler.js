@@ -166,3 +166,88 @@ export function buildMarathon(selectedSessions) {
     totalElapsedFormatted: formatMinutes(endMinutes - first.startMinutes),
   };
 }
+
+/**
+ * Group sessions by movieId.
+ * @param {Array} sessions - Flat session list from flattenSessions()
+ * @returns {Map<string, Array>} Map of movieId -> session[]
+ */
+export function groupByMovieId(sessions) {
+  const map = new Map();
+  for (const s of sessions) {
+    if (!map.has(s.movieId)) {
+      map.set(s.movieId, []);
+    }
+    map.get(s.movieId).push(s);
+  }
+  return map;
+}
+
+/**
+ * Fisher-Yates shuffle (in-place, returns same array).
+ */
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Pick random movies and build a valid chronological marathon.
+ *
+ * @param {Array} sessions - Flat session list from flattenSessions()
+ * @param {number} count - Number of unique movies to pick
+ * @param {Object} opts
+ * @param {number} opts.minWait - Minimum wait between movies in minutes (default 15)
+ * @param {number} opts.maxWait - Maximum wait between movies in minutes (default 180)
+ * @returns {Object|null} { sessions: Array, uniqueMovies: number, clamped: boolean }
+ *          or null if fewer than 2 sessions could be placed
+ */
+export function pickRandomMarathon(sessions, count, { minWait = 15, maxWait = 180 } = {}) {
+  const movieMap = groupByMovieId(sessions);
+  const movieIds = [...movieMap.keys()];
+  const uniqueMovies = movieIds.length;
+
+  if (uniqueMovies < 2) return null;
+
+  const clamped = count > uniqueMovies;
+  const actualCount = Math.min(count, uniqueMovies);
+
+  shuffle(movieIds);
+  const pickedIds = movieIds.slice(0, actualCount);
+
+  const pickedMovies = pickedIds.map(id => ({
+    id,
+    sessions: movieMap.get(id).sort((a, b) => a.startMinutes - b.startMinutes),
+  }));
+
+  pickedMovies.sort((a, b) => a.sessions[0].startMinutes - b.sessions[0].startMinutes);
+
+  const placed = [];
+  for (const movie of pickedMovies) {
+    let bestSession = null;
+
+    if (placed.length === 0) {
+      bestSession = movie.sessions[0];
+    } else {
+      const prev = placed[placed.length - 1];
+      for (const candidate of movie.sessions) {
+        const wait = candidate.startMinutes - prev.endMinutes;
+        if (wait >= minWait && wait <= maxWait) {
+          bestSession = candidate;
+          break;
+        }
+      }
+    }
+
+    if (bestSession) {
+      placed.push(bestSession);
+    }
+  }
+
+  if (placed.length < 2) return null;
+
+  return { sessions: placed, uniqueMovies, clamped };
+}
